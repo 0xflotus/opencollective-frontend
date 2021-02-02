@@ -5,7 +5,7 @@ import { FormattedMessage } from 'react-intl';
 import LoadingPlaceholder from './LoadingPlaceholder';
 import { Span } from './Text';
 
-/** If using the new internationalised address form, address will be stringified JSON */
+/** If using I18nAddressFields component, address will be stringified JSON */
 const isAddressJson = address => {
   let addressObject;
   try {

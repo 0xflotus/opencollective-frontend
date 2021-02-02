@@ -283,7 +283,7 @@ const ExpenseFormBody = ({
           <HiddenFragment show={step == STEPS.PAYEE}>
             <Flex alignItems="center" mb={16}>
               <Span color="black.900" fontSize="16px" lineHeight="21px" fontWeight="bold">
-                {formatMessage(msg.stepPayee)} yeet
+                {formatMessage(msg.stepPayee)}
               </Span>
               <Box ml={2}>
                 <PrivateInfoIcon size={12} color="#969BA3" tooltipProps={{ display: 'flex' }} />

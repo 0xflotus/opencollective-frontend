@@ -13,6 +13,7 @@ import AddressFormatter from '@shopify/address';
 import { Field, useFormikContext } from 'formik';
 import { get, isEmpty, orderBy, pick, truncate } from 'lodash';
 import memoizeOne from 'memoize-one';
+import { useIntl } from 'react-intl';
 
 import LoadingPlaceholder from './LoadingPlaceholder';
 import StyledInput from './StyledInput';
@@ -70,19 +71,14 @@ const isFieldOptional = (addressInfo, fieldName) => {
 };
 
 /** Component to be used in forms that require addresses that need some validation
- * i.e. Expenses and Contributions. Must be used with Formik. */
+ * i.e. Expenses and Contributions. */
 const I18nAddressFields = ({ selectedCountry }) => {
   const formik = useFormikContext();
+  const intl = useIntl();
 
-  /** Pass user's chosen locale (from the footer language selection, stored in browser cookies)
-   * to AddressFormatter if present. */
-  if (document.cookie.includes('language')) {
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('language'))
-      .split('=')[1]
-      .toUpperCase();
-    addressFormatter.updateLocale(cookieValue);
+  /** Pass user's chosen locale to AddressFormatter if present. */
+  if (intl.locale) {
+    addressFormatter.updateLocale(intl.locale);
   }
 
   /** If country chosen from InputTypeCountry is one of missingCountries, use 'US' instead */
