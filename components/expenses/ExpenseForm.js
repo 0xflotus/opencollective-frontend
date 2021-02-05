@@ -189,6 +189,7 @@ const ExpenseFormBody = ({
   const intl = useIntl();
   const { formatMessage } = intl;
   const { values, handleChange, errors, setValues, dirty, touched, setErrors } = formik;
+  console.log('is formik being dirty?', dirty);
   const hasBaseFormFieldsCompleted = values.type && values.description;
   const isInvite = values.payee?.isInvite;
   const isReceipt = values.type === expenseTypes.RECEIPT;
@@ -236,14 +237,24 @@ const ExpenseFormBody = ({
     }
   }, [values.type]);
 
+  const [callShopify, setCallShopify] = React.useState(false);
   // Load values from localstorage
   React.useEffect(() => {
     if (shouldLoadValuesFromPersister && formPersister && !dirty) {
+      console.log('trying to load values from persister');
       const formValues = formPersister.loadValues();
       if (formValues) {
         // Reset payoutMethod if host is no longer connected to TransferWise
         if (formValues.payoutMethod?.type === PayoutMethodType.BANK_ACCOUNT && !collective.host?.transferwise) {
           formValues.payoutMethod = undefined;
+        }
+        // If there is persisted form data in the form of an object, we've already called Shopify. We don't
+        // want to call the API again from this level - only if the country field changes in ExpenseFormPayeeStep.
+        if (formValues.payeeLocation?.address && typeof formValues.payeeLocation.address === 'string') {
+          console.log('new form or address is string - should call shopify');
+          setCallShopify(true);
+        } else {
+          console.log('address is object - should not be calling shopify');
         }
         setValues(
           omit(
@@ -259,6 +270,7 @@ const ExpenseFormBody = ({
   // Save values in localstorage
   React.useEffect(() => {
     if (dirty && formPersister) {
+      console.log('Saving values in localstorage');
       formPersister.saveValues(values);
     }
   }, [formPersister, dirty, values]);
@@ -302,6 +314,8 @@ const ExpenseFormBody = ({
               />
             ) : (
               <ExpenseFormPayeeStep
+                shouldCallShopify={callShopify}
+                shouldLoadValuesFromPersister={shouldLoadValuesFromPersister}
                 collective={collective}
                 formik={formik}
                 isOnBehalf={isOnBehalf}
@@ -583,6 +597,7 @@ const ExpenseForm = ({
   const isDraft = expense?.status === expenseStatus.DRAFT;
   const [hasValidate, setValidate] = React.useState(validateOnChange && !isDraft);
   const initialValues = { ...getDefaultExpense(collective), ...expense };
+  console.log('ExpenseForm initial values', initialValues);
   if (isDraft) {
     initialValues.items = expense.draft.items;
     initialValues.attachedFiles = expense.draft.attachedFiles;

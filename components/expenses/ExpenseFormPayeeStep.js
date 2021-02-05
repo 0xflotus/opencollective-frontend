@@ -58,6 +58,7 @@ const msg = defineMessages({
 const EMPTY_ARRAY = [];
 
 const setLocationFromPayee = (formik, payee) => {
+  console.log('setting location from payee');
   formik.setFieldValue('payeeLocation.country', payee?.location?.country || null);
   formik.setFieldValue('payeeLocation.address', payee?.location?.address || '');
 };
@@ -105,10 +106,12 @@ const ExpenseFormPayeeStep = ({
   onNext,
   isOnBehalf,
   loggedInAccount,
+  shouldCallShopify,
 }) => {
   const intl = useIntl();
   const { formatMessage } = intl;
   const { values, errors } = formik;
+  console.log('address values', values.payeeLocation?.address);
   const stepOneCompleted = isOnBehalf
     ? values.payee
     : isEmpty(flattenObjectDeep(validatePayoutMethod(values.payoutMethod))) &&
@@ -248,7 +251,11 @@ const ExpenseFormPayeeStep = ({
                   </StyledInputField>
                 )}
               </FastField>
-              <I18nAddressFields selectedCountry={values.payeeLocation?.country} />
+              <I18nAddressFields
+                selectedCountry={values.payeeLocation?.country}
+                shouldCallShopify={shouldCallShopify}
+                //persistedAddressData={}
+              />
               <FastField name="invoiceInfo">
                 {({ field }) => (
                   <StyledInputField
@@ -394,6 +401,7 @@ ExpenseFormPayeeStep.propTypes = {
     }),
     settings: PropTypes.object,
   }).isRequired,
+  shouldCallShopify: PropTypes.bool.isRequired,
 };
 
 export default ExpenseFormPayeeStep;

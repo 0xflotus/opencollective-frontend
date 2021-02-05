@@ -10,7 +10,7 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import AddressFormatter from '@shopify/address';
-import { Field, useFormikContext } from 'formik';
+import { FastField, Field, useFormikContext } from 'formik';
 import { get, isEmpty, orderBy, pick, truncate } from 'lodash';
 import memoizeOne from 'memoize-one';
 import { useIntl } from 'react-intl';
@@ -19,6 +19,7 @@ import LoadingPlaceholder from './LoadingPlaceholder';
 import StyledInput from './StyledInput';
 import StyledInputField from './StyledInputField';
 import StyledSelect from './StyledSelect';
+import StyledTextarea from './StyledTextarea';
 
 /** Constants */
 
@@ -32,6 +33,9 @@ const missingCountries = ['AS', 'AQ', 'GU', 'MH', 'FM', 'MP', 'PW', 'PR', 'VI'];
 const addressFormatter = new AddressFormatter('EN');
 
 const wrangleAddressData = addressInfo => {
+  if (typeof addressInfo !== 'object') {
+    return addressInfo;
+  }
   const formLayout = addressInfo.formatting.edit;
   const necessaryFields = ['address1', 'address2', 'city', 'zip', 'province'];
 
@@ -72,7 +76,7 @@ const isFieldOptional = (addressInfo, fieldName) => {
 
 /** Component to be used in forms that require addresses that need some validation
  * i.e. Expenses and Contributions. */
-const I18nAddressFields = ({ selectedCountry }) => {
+const I18nAddressFields = ({ selectedCountry, shouldCallShopify }) => {
   const formik = useFormikContext();
   const intl = useIntl();
 
@@ -87,26 +91,59 @@ const I18nAddressFields = ({ selectedCountry }) => {
   /** Prepare the address form data */
   const [data, setData] = React.useState(null);
   const [fields, setFields] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    // TODO: add error handling and default address form
+    console.log('calling shopify');
     const fetchData = async () => {
-      const countryInfo = await addressFormatter.getCountry(country);
-      setData(pick(countryInfo, ['formatting', 'labels', 'optionalLabels', 'zones']));
+      try {
+        const response = await addressFormatter.getCountry(country);
+        setData(pick(response, ['formatting', 'labels', 'optionalLabels', 'zones']));
+        const countryInfo = pick(response, ['formatting', 'labels', 'optionalLabels', 'zones']);
+        const addressFields = wrangleAddressData(countryInfo);
+        setFields(addressFields);
+      } catch (e) {
+        console.log(e);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
   }, [selectedCountry]);
 
-  React.useEffect(() => {
-    if (data) {
-      const addressFields = wrangleAddressData(data);
-      setFields(addressFields);
-    }
-  }, [data]);
-
-  if (!selectedCountry || !data || !fields) {
+  if (loading) {
     return <LoadingPlaceholder width="100%" height={163} />;
+  }
+
+  // If the call to Shopify fails, fallback to the free text address field
+  if (!loading && !data && !fields) {
+    return (
+      <Fragment>
+        <FastField name="payeeLocation.address">
+          {({ field }) => (
+            <StyledInputField
+              name={field.name}
+              label="address"
+              labelFontSize="13px"
+              //error={formatFormErrorMessage(intl, errors.payeeLocation?.address)}
+              required
+              mt={3}
+            >
+              {inputProps => (
+                <StyledTextarea
+                  {...inputProps}
+                  {...field}
+                  minHeight={100}
+                  data-cy="payee-address"
+                  placeholder="P. Sherman 42&#10;Wallaby Way&#10;Sydney"
+                />
+              )}
+            </StyledInputField>
+          )}
+        </FastField>
+      </Fragment>
+    );
   }
 
   // Zone select
@@ -122,8 +159,6 @@ const I18nAddressFields = ({ selectedCountry }) => {
 
     return orderBy(options, 'label');
   });
-
-  // TODO: change tests looks for 'data-cy: payee-address'
 
   return (
     <Fragment>
@@ -189,6 +224,7 @@ const I18nAddressFields = ({ selectedCountry }) => {
 I18nAddressFields.propTypes = {
   /** ISO country code passed down from ExpenseFormPayeeStep. */
   selectedCountry: PropTypes.string.isRequired,
+  shouldCallShopify: PropTypes.bool.isRequired,
 };
 
 export default I18nAddressFields;
