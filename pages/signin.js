@@ -19,7 +19,7 @@ import { P } from '../components/Text';
 import { withUser } from '../components/UserProvider';
 
 class SigninPage extends React.Component {
-  static getInitialProps({ query: { token, next, form }, req }) {
+  static getInitialProps({ query: { token, next, form, email }, req }) {
     // Decode next URL if URI encoded
     if (next && next.startsWith('%2F')) {
       next = decodeURIComponent(next);
@@ -31,12 +31,14 @@ class SigninPage extends React.Component {
       next,
       form: form || 'signin',
       isSuspiciousUserAgent: isSuspiciousUserAgent(req?.get('User-Agent')),
+      email: email && decodeURIComponent(email),
     };
   }
 
   static propTypes = {
     form: PropTypes.oneOf(['signin', 'create-account']).isRequired,
     token: PropTypes.string,
+    email: PropTypes.string,
     next: PropTypes.string,
     login: PropTypes.func,
     errorLoggedInUser: PropTypes.string,
@@ -161,7 +163,6 @@ class SigninPage extends React.Component {
     }
 
     const error = errorLoggedInUser || this.state.error;
-
     return (
       <React.Fragment>
         {error && !error.includes('Two-factor authentication is enabled') && (
@@ -183,6 +184,7 @@ class SigninPage extends React.Component {
           </MessageBox>
         )}
         <SignInOrJoinFree
+          email={this.props.email}
           redirect={next || '/'}
           form={form}
           routes={this.getRoutes()}

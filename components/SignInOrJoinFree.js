@@ -5,6 +5,7 @@ import { graphql } from '@apollo/client/react/hoc';
 import { Field, Form, Formik } from 'formik';
 import { pick } from 'lodash';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
+import { isEmail } from 'validator';
 
 import { checkUserExistence, signin } from '../lib/api';
 import { getWebsiteUrl } from '../lib/utils';
@@ -14,6 +15,7 @@ import CreateProfileFAQ from './faqs/CreateProfileFAQ';
 import CreateProfile from './CreateProfile';
 import { Box, Flex } from './Grid';
 import I18nFormatters from './I18nFormatters';
+import Loading from './Loading';
 import MessageBoxGraphqlError from './MessageBoxGraphqlError';
 import SignIn from './SignIn';
 import StyledButton from './StyledButton';
@@ -37,6 +39,8 @@ class SignInOrJoinFree extends React.Component {
   static propTypes = {
     /** Redirect URL */
     redirect: PropTypes.string,
+    /** Provide this to automatically sign in the given email */
+    email: PropTypes.string,
     /** createUserQuery binding */
     createUser: PropTypes.func,
     /** Use this prop to use this as a controlled component */
@@ -61,13 +65,23 @@ class SignInOrJoinFree extends React.Component {
     submitTwoFactorAuthenticatorCode: PropTypes.func,
   };
 
-  state = {
-    form: this.props.defaultForm || 'signin',
-    error: null,
-    submitting: false,
-    unknownEmailError: false,
-    email: '',
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      form: this.props.defaultForm || 'signin',
+      error: null,
+      submitting: false,
+      unknownEmailError: false,
+      email: props.email || '',
+    };
+  }
+
+  componentDidMount() {
+    // Auto signin if an email is provided
+    if (this.props.email && isEmail(this.props.email)) {
+      this.signIn(this.props.email);
+    }
+  }
 
   switchForm = form => {
     // Update local state
@@ -223,6 +237,12 @@ class SignInOrJoinFree extends React.Component {
     const displayedForm = this.props.form || this.state.form;
     const routes = this.props.routes || {};
     const { enforceTwoFactorAuthForLoggedInUser } = this.props;
+
+    // No need to show the form if an email is provided
+    const hasError = Boolean(unknownEmailError || error);
+    if (this.props.email && !hasError) {
+      return <Loading />;
+    }
 
     return (
       <Flex flexDirection="column" width={1} alignItems="center">
